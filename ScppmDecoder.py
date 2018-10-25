@@ -34,9 +34,8 @@ class ScppmDecoder(object):
             # first half iteration
 
             # inner
-            a = self.inner_siso.decode(Lext, y, [0] * n_i, n_i)
-            a_ext = [1*(x- Lext[index]) for index, x in enumerate(a)]
-            # a_ext = a-Lext
+            a, cout = self.inner_siso.decode(Lext, y, n_i)
+            a_ext = [x-y for x,y in zip(a, Lext)]
 
             #test
             cve = ConvEncoder(self.outer_siso.trellis)
@@ -78,11 +77,11 @@ class ScppmDecoder(object):
             # second half iteration
 
             # outer
-            u = self.outer_siso.decode([0] * (n_data + self.outer_siso.trellis.K - 1), x[0:len_x], [0] * (n_data + self.outer_siso.trellis.K - 1), n_data)
+            u, cout = self.outer_siso.decode([0] * n_data, x[0:len_x], n_data)
 
             # interleaver
-            Lext = self.il.interleave(self.outer_siso.lue + [-10] * (n_i-len_x))
-            Lext = [ext_scale* Lext[index] for index, x in enumerate(Lext)]
+            Lext = self.il.interleave(cout + [-10] * (n_i-len_x))
+            Lext = [ext_scale* x for x in Lext]
 
             llr_max = 16
             Lext = [llr_max if x > llr_max else x for x in Lext]
