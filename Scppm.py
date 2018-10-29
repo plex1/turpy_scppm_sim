@@ -61,7 +61,7 @@ class ScppmEncoder(object):
 import numpy as np
 
 
-class PpmTrellis(object):
+class AppmTrellis(object):
 
     def __init__(self, modulator):
         self.Ns = 2  # number of states
