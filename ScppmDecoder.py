@@ -7,7 +7,6 @@
 
 class ScppmDecoder(object):
 
-
     def __init__(self, interleaver, inner_siso, outer_siso):
 
         self.inner_siso = inner_siso
@@ -28,14 +27,14 @@ class ScppmDecoder(object):
             length of data
 
         expected_data: list containing 1s and 0s
-            expected data for bit error rate calcualtion
+            expected data for bit error rate calculation
 
 
         Returns
         -------
         u_hard: list containing 1s and 0s | hard decisions of decoded data
 
-        errors_iter: ist with length iterations containig floats between [0,1]
+        errors_iter: ist with length iterations containing floats between [0,1]
             errors per iteration
         """
 
