@@ -28,7 +28,7 @@ def main():
     # create trellises, encoders and decoders instances
     gp = [[1, 0, 1], [1, 1, 1]]
     outer_trellis = Trellis(ConvTrellisDef(gp))
-    appm_trellis = Trellis(Scppm.AppmTrellis(ppm_mod))
+    appm_trellis = Trellis(Scppm.AppmTrellisDef(ppm_mod))
 
     # create sisos
     inner_siso = SisoDecoder(appm_trellis)

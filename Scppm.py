@@ -41,8 +41,10 @@ class ScppmEncoder(object):
         self.trellis = trellis
         self.interleaver = interleaver
         self.modulator = modulator
+        self.use_appmtrellis = False
 
-    def accu(self, d):
+    @staticmethod
+    def accu(d):
         trellis_accu = Trellis(ConvTrellisDef([[1, 0]], [0, 1]))
         cve = ConvEncoder(trellis_accu)
         return cve.encode(d, False)
@@ -54,15 +56,18 @@ class ScppmEncoder(object):
         d = d + [0] * (len(self.interleaver.perm) - len(d))
         d = self.interleaver.interleave(d)  # interleaving
         N_i = len(d)
-        d = self.accu(d)
-        e = self.modulator.modulate_stream(d)  # modulation
+
+        if self.use_appmtrellis:
+            cve_appm = ConvEncoder(Trellis(AppmTrellisDef(self.modulator)))
+            e = cve_appm.encode(d, False)
+        else:
+            d = self.accu(d)
+            e = self.modulator.modulate_stream(d)  # modulation
+
         return [e, len_x, N_i]
 
 
-import numpy as np
-
-
-class AppmTrellis(object):
+class AppmTrellisDef(object):
 
     def __init__(self, modulator):
         self.Ns = 2  # number of states
@@ -71,8 +76,6 @@ class AppmTrellis(object):
         self.rsc = 0
         self.wu = int(np.log2(modulator.m))
         self.mod = modulator
-        self.get_dat_precalc = []
-        self.get_enc_bits_precalc = []
 
     def get_next_state(self, branch):
         return int((branch & 2 ** (self.wu - 1)) != 0)
@@ -97,3 +100,37 @@ class AppmTrellis(object):
         return utils.dec2bin(
             (branch & (2 ** self.wu - 1)) ^ (((branch & (2 ** (self.wu - 1) - 1)) << 1) + self.get_prev_state(branch)),
             self.wu)
+
+
+class AppmTrellisDefB(object):
+
+    # alternative description of appm trellis
+    # use this to adopt to more complex trellises (e.g. with two states)
+
+    # branch definition [s0, w0, w1, w2, w3] = s0 + 2** w0 + .. + 2**4 * w3
+    # 0 is always the oldest value
+
+    def __init__(self, modulator):
+        self.Ns = 2  # number of states
+        self.Nb = 2 * modulator.m  # number of branches
+        self.wc = modulator.m
+        self.rsc = 0
+        self.wu = int(np.log2(modulator.m))
+        self.mod = modulator
+
+    def get_next_state(self, branch):
+        return utils.get_bit(self.get_a(branch), self.wu - 1)
+
+    def get_next_branches(self, state):
+        return np.array([(x << 1) + state for x in range(2 ** (self.wu))])
+
+    def get_enc_bits(self, branch):
+        return self.mod.modulate_symbol(self.get_a(branch))
+
+    def get_dat(self, branch):
+        return utils.dec2bin(utils.get_bits(branch, 1, self.wu), self.wu)
+
+    def get_a(self, branch):
+        a = ScppmEncoder.accu(utils.dec2bin(branch, self.wu + 1))
+        a = utils.bin2dec(a) >> 1  # remove state
+        return a
